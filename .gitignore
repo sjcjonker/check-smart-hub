@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.venv/
+# Local enrollment output and credentials
+*.json
+!examples/*.json.example

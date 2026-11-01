@@ -1,0 +1,8 @@
+{
+  "provider": "dirigera",
+  "host": "192.0.2.11",
+  "certificate_sha256": "REPLACE_WITH_VERIFIED_LEAF_CERTIFICATE_SHA256",
+  "token": "REPLACE_LOCALLY_ONLY",
+  "expected_devices": []
+}
+
