@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Read-only local monitoring for Hue, DIRIGERA and TaHoma hubs.
+# Author: Stijn Jonker (sjcjonker) | https://github.com/sjcjonker
+# Usage: python3 check_smart_hub.py --config /private/hub.json --mode devices
+# Default mode: devices (polls inventory); credentials stay in private config. Help: --help.
+# Nagios exit codes: 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN.
 """Read-only local TaHoma/DIRIGERA/Hue monitoring; Python standard library only."""
 from __future__ import annotations
 
