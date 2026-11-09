@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Interactively enroll a local smart hub and write private credentials.
+# Author: Stijn Jonker (sjcjonker) | https://github.com/sjcjonker
+# Usage: sudo python3 scripts/setup-smart-hub.py --provider hue --host 192.0.2.10
+# Verify the TLS fingerprint; creates root:nagios 0640 config, never overwrites. Help: --help.
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Interactive local-only hub enrollment; writes root:nagios 0640 credentials."""
 from __future__ import annotations
