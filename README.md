@@ -13,7 +13,7 @@ This is an observation, not a measured or confirmed causal relationship.
 
 Device monitoring remains available, but is not used by the author for Hue.
 Choose one of the status modes explicitly for routine Hue checks: the default
-`devices` mode polls the device inventory. The `hub` and `inventory` modes, and
+`devices` mode polls the device inventory. The provider-prefixed `*-hub` and `*-inventory` modes, and
 interactive enrollment, also retrieve the inventory. The three Hue status modes
 read local bridge status without retrieving the device inventory.
 
@@ -97,8 +97,9 @@ provider, token, certificate pin and device baseline; `$HOSTADDRESS$` does not
 override the JSON address. Use enrollment `--output` to create a second file.
 
 For the other Hue status checks, define shared commands with `--mode hue-internet`
-and `--mode hue-remote-access`. DIRIGERA and Somfy use `--mode hub` or `--mode devices`
-with the same host macro. See [examples/nagios.cfg.example](examples/nagios.cfg.example).
+and `--mode hue-remote-access`. DIRIGERA uses `--mode ikea-hub` or `--mode ikea-devices`;
+Somfy uses `--mode somfy-hub` or `--mode somfy-devices` with the same host macro.
+See [examples/nagios.cfg.example](examples/nagios.cfg.example).
 The example assumes your standard `generic-host` and `generic-service` templates
 and the usual 60-second Nagios interval unit; adapt these to your installation.
 
@@ -117,16 +118,21 @@ Available `--mode` values:
 
 | Mode | Behavior |
 | --- | --- |
-| `devices` (default) | Check the reviewed device baseline |
-| `hub` | Check authenticated API access; does not evaluate the device baseline |
-| `inventory` | Print device IDs, names and states; treat output as private site data |
-| `validate` | Validate the local private JSON without a network request |
+| `hue-devices`, `ikea-devices`, `somfy-devices` | Check the reviewed device baseline |
+| `hue-hub`, `ikea-hub`, `somfy-hub` | Check authenticated API access; does not evaluate the device baseline |
+| `hue-inventory`, `ikea-inventory`, `somfy-inventory` | Print device IDs, names and states; treat output as private site data |
+| `hue-validate`, `ikea-validate`, `somfy-validate` | Validate the local private JSON without a network request |
 | `hue-backup` | Check reported backup error/status; does not verify backup freshness or restoreability |
 | `hue-internet` | Check the Hue bridge's reported internet connectivity |
 | `hue-remote-access` | Check the Hue bridge's reported remote-access connectivity |
 
+The prefix must match the private JSON provider: `hue`, `dirigera` for `ikea-`,
+or `somfy`. A mismatch returns UNKNOWN before any network request. The existing
+unprefixed `devices` (default), `hub`, `inventory` and `validate` names remain
+compatibility aliases. Use prefixed modes in new configurations.
+
 Hue status modes use the pinned local v1 API. A missing or unrecognized field
-returns UNKNOWN. Use `devices` for actual device reachability monitoring.
+returns UNKNOWN. Use the corresponding `*-devices` mode for device reachability monitoring.
 
 Exit codes: 0 OK, 2 CRITICAL (offline/missing devices or transport failure),
 3 UNKNOWN (invalid configuration, ambiguous state or unobservable reachability).

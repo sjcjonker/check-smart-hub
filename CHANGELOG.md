@@ -1,8 +1,20 @@
 # Changelog
 
-## 1.0.0 — Unreleased
+## 1.2.0 - 2026-11-20
 
-Initial standalone release candidate:
+- Add consistent `hue-`, `ikea-` and `somfy-` prefixed `hub`, `devices`,
+  `inventory` and `validate` modes.
+- Reject a provider/mode mismatch with UNKNOWN before network access.
+- Keep existing unprefixed modes, default behavior and Hue status modes compatible.
+- Extend generic multi-hub Nagios examples for Hue, DIRIGERA and Somfy.
+
+## 1.1.0
+
+Previous published baseline; see the `v1.1.0` tag for its complete contents.
+
+## 1.0.0
+
+Initial standalone release:
 
 - Read-only device reachability checks for Philips Hue, IKEA DIRIGERA and Somfy TaHoma.
 - Reviewed device baselines, stable IDs and explicit offline/missing-device results.

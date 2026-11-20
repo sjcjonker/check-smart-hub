@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Read-only local monitoring for Hue, DIRIGERA and TaHoma hubs.
 # Author: Stijn Jonker (sjcjonker) | https://github.com/sjcjonker
-# Usage: python3 check_smart_hub.py --config /private/hub.json --mode devices
+# Usage: python3 check_smart_hub.py --config /private/hub.json --mode ikea-devices
 # Default mode: devices (polls inventory); credentials stay in private config. Help: --help.
 # Nagios exit codes: 0 OK, 1 WARNING, 2 CRITICAL, 3 UNKNOWN.
 """Read-only local TaHoma/DIRIGERA/Hue monitoring; Python standard library only."""
@@ -287,10 +287,26 @@ def deadline(_signum, _frame):
     raise CheckError("local API check exceeded 15 seconds", 2)
 
 
+GENERIC_MODES = ("hub", "devices", "inventory", "validate")
+MODE_PROVIDERS = {"hue": "hue", "ikea": "dirigera", "somfy": "somfy"}
+HUE_STATUS_MODES = ("hue-backup", "hue-internet", "hue-remote-access")
+PREFIXED_MODES = tuple(prefix + "-" + mode for prefix in MODE_PROVIDERS for mode in GENERIC_MODES) + HUE_STATUS_MODES
+
+
+def resolve_mode(mode, provider):
+    """Bind a prefixed mode to its provider before any network request."""
+    if mode in GENERIC_MODES:
+        return mode  # Compatibility with previously deployed commands.
+    prefix, _, operation = mode.partition("-")
+    if MODE_PROVIDERS.get(prefix) != provider:
+        raise CheckError("mode prefix does not match the configured hub provider")
+    return mode if mode in HUE_STATUS_MODES else operation
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True)
-    parser.add_argument("--mode", choices=("hub", "devices", "inventory", "validate", "hue-backup", "hue-internet", "hue-remote-access"), default="devices")
+    parser.add_argument("--mode", choices=PREFIXED_MODES + GENERIC_MODES, default="devices", help="provider-prefixed mode; unprefixed modes remain compatibility aliases")
     args = parser.parse_args(argv)
     signal.signal(signal.SIGALRM, deadline)
     signal.alarm(15)
@@ -299,18 +315,19 @@ def main(argv=None):
             config = load_config(args.config)
         except OSError:
             raise CheckError("private config missing, unreadable or unsafe")
-        if args.mode == "validate":
+        mode = resolve_mode(args.mode, config["provider"])
+        if mode == "validate":
             print("OK - local configuration valid (no network request)")
             return 0
-        if args.mode.startswith("hue-"):
-            code, output = hue_status(config, args.mode)
+        if mode in HUE_STATUS_MODES:
+            code, output = hue_status(config, mode)
             print(("OK", "WARNING", "CRITICAL", "UNKNOWN")[code] + " - " + output)
             return code
         devices = inventory(config["provider"], request(config, PATHS[config["provider"]]))
-        if args.mode == "inventory":
+        if mode == "inventory":
             print(json.dumps(devices, indent=2, ensure_ascii=True))
             return 0
-        if args.mode == "hub":
+        if mode == "hub":
             code, output = 0, "authenticated local API responds; %d inventory entries" % len(devices)
         else:
             code, output = evaluate(devices, config.get("expected_devices", []))
