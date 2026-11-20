@@ -305,5 +305,62 @@ class HiddenInputChecks(unittest.TestCase):
         hidden.assert_called_once()
         self.assertNotIn('SECRET', output.getvalue())
 
+
+class PrefixedModes(unittest.TestCase):
+    def run_mode(self, mode, provider):
+        output = io.StringIO()
+        with patch.object(hub, "load_config", return_value=config(provider)), \
+             patch.object(hub, "request", return_value=[]) as request, \
+             patch.object(hub, "inventory", return_value={}) as inventory, \
+             patch.object(hub, "evaluate", return_value=(0, "devices OK")) as evaluate, \
+             patch.object(hub, "hue_status", return_value=(0, "Hue status OK")) as hue_status, \
+             contextlib.redirect_stdout(output):
+            result = hub.main(["--config", "fixture.json", "--mode", mode])
+        self.assertNotIn("SECRET", output.getvalue())
+        return result, request, inventory, evaluate, hue_status, output.getvalue()
+
+    def test_prefixed_generic_modes_for_all_three_providers(self):
+        for prefix, provider in (("hue", "hue"), ("ikea", "dirigera"), ("somfy", "somfy")):
+            for operation in ("hub", "devices", "inventory", "validate"):
+                with self.subTest(mode=prefix + "-" + operation):
+                    result, request, inventory, evaluate, hue_status, output = self.run_mode(prefix + "-" + operation, provider)
+                    self.assertEqual(result, 0)
+                    hue_status.assert_not_called()
+                    if operation == "validate":
+                        request.assert_not_called()
+                        inventory.assert_not_called()
+                    else:
+                        request.assert_called_once()
+                        self.assertEqual(request.call_args.args[1], hub.PATHS[provider])
+                        inventory.assert_called_once_with(provider, [])
+                    self.assertEqual(evaluate.call_count, int(operation == "devices"))
+                    if operation == "inventory":
+                        self.assertEqual(json.loads(output), {})
+
+    def test_wrong_provider_prefix_is_unknown_before_network_access(self):
+        for prefix, provider in (("hue", "hue"), ("ikea", "dirigera"), ("somfy", "somfy")):
+            for wrong in set(hub.PATHS) - {provider}:
+                for operation in hub.GENERIC_MODES:
+                    with self.subTest(mode=prefix + "-" + operation, provider=wrong):
+                        result, request, inventory, evaluate, hue_status, _ = self.run_mode(prefix + "-" + operation, wrong)
+                        self.assertEqual(result, 3)
+                        request.assert_not_called()
+                        inventory.assert_not_called()
+                        evaluate.assert_not_called()
+                        hue_status.assert_not_called()
+
+    def test_hue_status_modes_still_avoid_device_inventory(self):
+        for mode in hub.HUE_STATUS_MODES:
+            result, request, inventory, evaluate, hue_status, _ = self.run_mode(mode, "hue")
+            self.assertEqual(result, 0)
+            hue_status.assert_called_once()
+            request.assert_not_called()
+            inventory.assert_not_called()
+            evaluate.assert_not_called()
+
+    def test_unprefixed_modes_remain_compatible(self):
+        for mode in hub.GENERIC_MODES:
+            self.assertEqual(self.run_mode(mode, "dirigera")[0], 0)
+
 if __name__ == "__main__":
     unittest.main()

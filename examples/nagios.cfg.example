@@ -1,7 +1,7 @@
 # Shared command: define once in your Nagios commands file.
 define command {
-    command_name check_hue_backup
-    command_line /usr/bin/python3 /usr/local/lib/nagios/plugins/check_smart_hub.py --config '$_HOSTKEYFILE$' --mode hue-backup
+    command_name check_smart_hub
+    command_line /usr/bin/python3 /usr/local/lib/nagios/plugins/check_smart_hub.py --config '$_HOSTKEYFILE$' --mode '$ARG1$'
 }
 
 # Each host has its own private JSON configuration.
@@ -24,7 +24,41 @@ define service {
     use generic-service
     host_name hue-bridge,hue-bridge-2
     service_description Backup status
-    check_command check_hue_backup
+    check_command check_smart_hub!hue-backup
+    check_interval 60
+    retry_interval 5
+    max_check_attempts 3
+}
+
+# ikea-bridge.cfg: provider in the private JSON remains "dirigera".
+define host {
+    use generic-host
+    host_name ikea-bridge
+    address 192.0.2.11
+    _KEYFILE /etc/nagios4/private/smart-hubs/ikea-bridge.json
+}
+define service {
+    use generic-service
+    host_name ikea-bridge
+    service_description Connected devices
+    check_command check_smart_hub!ikea-devices
+    check_interval 60
+    retry_interval 5
+    max_check_attempts 3
+}
+
+# somfy-bridge.cfg
+define host {
+    use generic-host
+    host_name somfy-bridge
+    address 192.0.2.12
+    _KEYFILE /etc/nagios4/private/smart-hubs/somfy-bridge.json
+}
+define service {
+    use generic-service
+    host_name somfy-bridge
+    service_description Connected devices
+    check_command check_smart_hub!somfy-devices
     check_interval 60
     retry_interval 5
     max_check_attempts 3
